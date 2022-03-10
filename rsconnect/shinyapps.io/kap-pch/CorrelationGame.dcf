@@ -1,0 +1,13 @@
+name: CorrelationGame
+title: CorrelationGame
+username:
+account: kap-pch
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 5809439
+bundleId: 5666165
+url: https://kap-pch.shinyapps.io/CorrelationGame/
+when: 1646915835.65569
+lastSyncTime: 1646915835.6557
+asMultiple: FALSE
+asStatic: FALSE

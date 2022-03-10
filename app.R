@@ -35,11 +35,10 @@ ui <- fluidPage(theme = theme, useShinyjs(),
            align = "center",
            style = 'background-color:Tomato;padding:30px;font-size:80px;')
         ),
-    fluidRow(
         h5("Instructions",
            align = "center",
            style = 'padding:25px;')
-        ),
+        ,
     fluidRow(
         p("Guess the correlation between the variables in the plot. The closer you get, the more points you earn. A correct guess is defined as less than 10% deviance from the correct answer. Three wrong guesses and it's GAME OVER!",
             align = "center",
@@ -90,11 +89,12 @@ ui <- fluidPage(theme = theme, useShinyjs(),
 
 server <- function(input, output) {
 
-    vals = cor_vals()    
+    vals = cor_vals() 
     
     rv <- reactiveValues(
         score = 0, 
         lives = 3,
+        corr_exact = vals$corr_exact
     )
 
     output$score <- renderText({rv$score})
@@ -116,17 +116,14 @@ server <- function(input, output) {
     
     observeEvent(input$submit, {
         
-        output$correct <- renderText({vals$corr_exact})
-        
         hide("submit")
 
-        diff <- abs(vals$corr_exact-input$guess)
+        diff <- abs(rv$corr_exact-input$guess)
         
         if (diff > .1) {
             rv$score = rv$score
             rv$lives = rv$lives - 1
-            print(rv$score)
-            print(rv$lives)
+
             if (rv$lives < 1) {
                 rv$score = 0
             }
@@ -134,13 +131,17 @@ server <- function(input, output) {
             
         } else {
             rv$score = rv$score + 100 + (1000 * (.1 - diff))
-            print(rv$score)
-            print(rv$lives)
         }
-
+        
+        print(paste("corr:", rv$corr_exact))
+        print(paste("guess:", input$guess))
+        print(paste("diff:", diff))
+        print(paste("score:",rv$score))
+        print(paste("lives:",rv$lives))
+        
         output$score   <- renderText({rv$score})
         output$corr    <- renderText({"Correlation"})
-        output$correct <- renderText({vals$corr_exact})
+        output$correct <- renderText({rv$corr_exact})
         
         show("next_clicked")
         show('correlation_header')
@@ -157,6 +158,8 @@ server <- function(input, output) {
     observeEvent(input$next_clicked,{
 
         vals = cor_vals()    
+        
+        rv$corr_exact = vals$corr_exact
         
         show("submit")
         hide('correlation_header')
@@ -177,19 +180,6 @@ server <- function(input, output) {
                     panel.grid = element_blank()
                 )
         })
-        
-        observe({
-
-            input$submit
-            
-            isolate({
- 
-                output$correct <- renderText({vals$corr_exact})
-                
-            })
-            
-            })
-            
 
     })
 }
