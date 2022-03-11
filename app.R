@@ -28,6 +28,7 @@ cor_vals <- function(x) {
 
 # --------- UI --------------------------------------------------------------
 
+
 ui <- fluidPage(theme = theme, useShinyjs(),
                 
     titlePanel(
@@ -35,26 +36,32 @@ ui <- fluidPage(theme = theme, useShinyjs(),
            align = "center",
            style = 'background-color:Tomato;padding:30px;font-size:80px;')
         ),
-    fluidRow(
         h5("Instructions",
            align = "center",
            style = 'padding:25px;')
-        ),
+        ,
     fluidRow(
-        p("Guess the correlation between the variables in the plot. The closer you get, the more points you earn. A correct guess is defined as less than 10% deviance from the correct answer. Three wrong guesses and it's GAME OVER!",
+        p("Guess the correlation between the variables in the plot. The closer you get, the more points you earn. A correct guess is defined as less than .1 from the correct answer. Three wrong guesses and it's GAME OVER!",
             align = "center",
             style = "font-family: 'Press Start 2P';padding-left: 200px;padding-right: 200px;")
         ),
+    br(),
     fluidRow(
         column(width=2),
         column(
             width = 7,
             style = "padding-left: 200px;align:'center';",
-            plotOutput("plot", width = "99%", height = "800px")
+            plotOutput("plot", width = "99%", height = "800px"),
+            h1(textOutput("game_over"),
+               align = "center",
+               style = 'padding:100px;font-size:120px;'),
+            h1(textOutput("retry"),
+               align = "center",
+               style = 'padding:50px;font-size:40px;'),
             ),
         column(width=3,
-               tags$style("#score {font-size:25px;font-family:'Press Start 2P';text-align: center}"),
-               #h3(icon("heart", lib = "font-awesome"),icon("heart", lib = "font-awesome")),
+               tags$style("#score {font-size:30px;font-family:'Press Start 2P';text-align: center}"),
+               h3(icon("heart"),"x",textOutput("lives_left",inline = T), align="center"),
                h5("Your score", 
                    align = "center",
                    style = 'padding:25px;'),
@@ -90,21 +97,23 @@ ui <- fluidPage(theme = theme, useShinyjs(),
 
 server <- function(input, output) {
 
-    vals = cor_vals()    
+    vals = cor_vals() 
     
     rv <- reactiveValues(
         score = 0, 
         lives = 3,
+        corr_exact = vals$corr_exact
     )
 
     output$score <- renderText({rv$score})
+    output$lives_left <- renderText({rv$lives})
     
     output$plot <- renderPlot({
         
         df <- tibble(x=vals$x, y=vals$y)
         df %>%
             ggplot(aes(x, y)) +
-            geom_point(size = 3, alpha = .8, colour = "white") +
+            geom_point(size = 3.5, alpha = .8, colour = "white") +
             theme(
                 plot.background = element_rect(fill = blue, colour = blue),
                 panel.background = element_rect(fill = blue, colour = "white", size=2.5),
@@ -116,31 +125,39 @@ server <- function(input, output) {
     
     observeEvent(input$submit, {
         
-        output$correct <- renderText({vals$corr_exact})
-        
         hide("submit")
 
-        diff <- abs(vals$corr_exact-input$guess)
+        diff <- abs(rv$corr_exact-input$guess)
         
         if (diff > .1) {
             rv$score = rv$score
             rv$lives = rv$lives - 1
-            print(rv$score)
-            print(rv$lives)
+
             if (rv$lives < 1) {
-                rv$score = 0
+                #rv$score = 0
+                hide("plot")
+                output$game_over <- renderText({"GAME OVER"})
+                output$retry <- renderText({"Refresh your browser to try again"})
+                
+                show("game_over")
             }
             
             
         } else {
             rv$score = rv$score + 100 + (1000 * (.1 - diff))
-            print(rv$score)
-            print(rv$lives)
         }
-
+        
+        output$lives_left <- renderText({rv$lives})
+        
+        print(paste("corr:", rv$corr_exact))
+        print(paste("guess:", input$guess))
+        print(paste("diff:", diff))
+        print(paste("score:",rv$score))
+        print(paste("lives:",rv$lives))
+        
         output$score   <- renderText({rv$score})
         output$corr    <- renderText({"Correlation"})
-        output$correct <- renderText({vals$corr_exact})
+        output$correct <- renderText({rv$corr_exact})
         
         show("next_clicked")
         show('correlation_header')
@@ -158,6 +175,11 @@ server <- function(input, output) {
 
         vals = cor_vals()    
         
+        rv$corr_exact = vals$corr_exact
+        if (rv$lives < 1) {
+            rv$lives = 3
+        }
+        
         show("submit")
         hide('correlation_header')
         hide("correlation_value")
@@ -168,7 +190,7 @@ server <- function(input, output) {
             df <- tibble(x=vals$x, y=vals$y)
             df %>%
                 ggplot(aes(x, y)) +
-                geom_point(size = 3, alpha = .8, colour = "white") +
+                geom_point(size = 3.5, alpha = .8, colour = "white") +
                 theme(
                     plot.background = element_rect(fill = blue, colour = blue),
                     panel.background = element_rect(fill = blue, colour = "white", size=2.5),
@@ -177,19 +199,6 @@ server <- function(input, output) {
                     panel.grid = element_blank()
                 )
         })
-        
-        observe({
-
-            input$submit
-            
-            isolate({
- 
-                output$correct <- renderText({vals$corr_exact})
-                
-            })
-            
-            })
-            
 
     })
 }
