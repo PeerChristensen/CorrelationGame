@@ -30,13 +30,15 @@ cor_vals <- function(x) {
 
 
 ui <- fluidPage(theme = theme, useShinyjs(),
+                title="The Correlation Game",
                 
     titlePanel(
         h1("The Correlation Game", 
            align = "center",
            style = 'background-color:Tomato;padding:30px;font-size:80px;')
         ),
-        h5("Instructions",
+    
+    h5("Instructions",
            align = "center",
            style = 'padding:25px;')
         ,
@@ -46,8 +48,12 @@ ui <- fluidPage(theme = theme, useShinyjs(),
             style = "font-family: 'Press Start 2P';padding-left: 200px;padding-right: 200px;")
         ),
     br(),
+    
+
     fluidRow(
         column(width=2),
+        
+        # Main panel
         column(
             width = 7,
             style = "padding-left: 200px;align:'center';",
@@ -55,10 +61,12 @@ ui <- fluidPage(theme = theme, useShinyjs(),
             h1(textOutput("game_over"),
                align = "center",
                style = 'padding:100px;font-size:120px;'),
-            h1(textOutput("retry"),
+            h1(uiOutput("retry"),
                align = "center",
-               style = 'padding:50px;font-size:40px;'),
+               style = 'font-size:200px;')
             ),
+    
+        # Control and score panel
         column(width=3,
                tags$style("#score {font-size:30px;font-family:'Press Start 2P';text-align: center}"),
                h3(icon("heart"),"x",textOutput("lives_left",inline = T), align="center"),
@@ -95,7 +103,7 @@ ui <- fluidPage(theme = theme, useShinyjs(),
 
 # --------- SERVER --------------------------------------------------------------
 
-server <- function(input, output) {
+server <- function(input, output, session) {
 
     vals = cor_vals() 
     
@@ -139,7 +147,16 @@ server <- function(input, output) {
                 output$game_over <- renderText({"GAME OVER"})
                 output$retry <- renderText({"Refresh your browser to try again"})
                 
+                output$retry <- renderUI({
+                    tagList(
+                        actionButton("retry_btn", "Try again?",
+                                     style="font-family:'Press Start 2P';height=200px;width: 300px;",
+                                     align = "center")
+                    )
+                })
+                
                 show("game_over")
+                show("retry_btn")
             }
             
             
@@ -200,6 +217,11 @@ server <- function(input, output) {
                 )
         })
 
+    })
+    
+    observeEvent(input$retry_btn, {
+        #shinyjs::js$retry()
+        session$reload()
     })
 }
 
